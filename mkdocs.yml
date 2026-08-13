@@ -1,0 +1,57 @@
+site_name: arista.netbox_avd
+site_description: Generate Arista AVD inventory from NetBox as source of truth
+site_url: https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/
+repo_url: https://github.com/claudebouchard-arista/netbox_to_ansible_AVD
+repo_name: claudebouchard-arista/netbox_to_ansible_AVD
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - NetBox Data Model: netbox-data-model.md
+  - Local Defaults: local-defaults.md
+  - Filter Plugins: filter-plugins.md
+  - CI/CD & Verification: cicd.md
+  - Development: development.md
