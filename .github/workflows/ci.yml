@@ -101,7 +101,7 @@ jobs:
 
       - name: Install AVD collection
         run: |
-          pip install pyavd
+          pip install "pyavd[ansible]"
           ansible-galaxy collection install arista.avd -p /home/runner/.ansible/collections --force
 
       - name: Generate AVD inventory from NetBox
