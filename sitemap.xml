@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/architecture/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/cicd/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/development/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/filter-plugins/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/getting-started/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/local-defaults/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+    <url>
+         <loc>https://claudebouchard-arista.github.io/netbox_to_ansible_AVD/netbox-data-model/</loc>
+         <lastmod>2026-08-13</lastmod>
+    </url>
+</urlset>
