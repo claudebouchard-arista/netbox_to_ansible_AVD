@@ -1,0 +1,6 @@
+---
+# Network services (tenants, VRFs, SVIs, L2 VLANs) are now auto-generated
+# from NetBox VLANs, VRFs, prefixes, and tenants.
+#
+# This file can contain overrides that get deep-merged on top.
+# Leave empty to use pure NetBox data.

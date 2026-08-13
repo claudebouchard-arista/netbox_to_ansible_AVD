@@ -1,0 +1,7 @@
+---
+- name: Generate AVD Inventory from NetBox
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - arista.netbox_avd.generate_avd

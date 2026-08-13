@@ -1,0 +1,7 @@
+---
+# bgp_as and loopback_ipv4_pool now come from NetBox
+# (custom field avd_bgp_as on devices, prefix with avd_pool_role=loopback)
+# nodes injected from NetBox devices with role=spine
+spine:
+  defaults:
+    platform: cEOSLab

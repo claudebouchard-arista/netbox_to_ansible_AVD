@@ -1,0 +1,70 @@
+---
+- name: Check defaults directory exists
+  ansible.builtin.stat:
+    path: "{{ avd_defaults_dir }}"
+  register: _defaults_dir
+
+- name: Fail if defaults directory missing
+  ansible.builtin.assert:
+    that: _defaults_dir.stat.exists
+    fail_msg: "AVD defaults directory not found: {{ avd_defaults_dir }}"
+    quiet: true
+
+- name: Load fabric defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/fabric.yml"
+    name: _avd_fabric_defaults
+  ignore_errors: true
+
+- name: Load connectivity defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/connectivity.yml"
+    name: _avd_connectivity_defaults
+  ignore_errors: true
+
+- name: Load DC defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/dc.yml"
+    name: _avd_dc_defaults
+  ignore_errors: true
+
+- name: Load spine defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/spines.yml"
+    name: _avd_spine_defaults
+  ignore_errors: true
+
+- name: Load L3 leaf defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/l3_leaves.yml"
+    name: _avd_l3leaf_defaults
+  ignore_errors: true
+
+- name: Load L2 leaf defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/l2_leaves.yml"
+    name: _avd_l2leaf_defaults
+  ignore_errors: true
+
+- name: Load network services defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/network_services.yml"
+    name: _avd_network_services_defaults
+  ignore_errors: true
+
+- name: Load connected endpoints defaults
+  ansible.builtin.include_vars:
+    file: "{{ avd_defaults_dir }}/connected_endpoints.yml"
+    name: _avd_connected_endpoints_defaults
+  ignore_errors: true
+
+- name: Initialize missing defaults to empty dicts
+  ansible.builtin.set_fact:
+    _avd_fabric_defaults: "{{ _avd_fabric_defaults | default({}) }}"
+    _avd_connectivity_defaults: "{{ _avd_connectivity_defaults | default({}) }}"
+    _avd_dc_defaults: "{{ _avd_dc_defaults | default({}) }}"
+    _avd_spine_defaults: "{{ _avd_spine_defaults | default({}) }}"
+    _avd_l3leaf_defaults: "{{ _avd_l3leaf_defaults | default({}) }}"
+    _avd_l2leaf_defaults: "{{ _avd_l2leaf_defaults | default({}) }}"
+    _avd_network_services_defaults: "{{ _avd_network_services_defaults | default({}) }}"
+    _avd_connected_endpoints_defaults: "{{ _avd_connected_endpoints_defaults | default({}) }}"

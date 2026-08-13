@@ -1,0 +1,29 @@
+---
+namespace: arista
+name: netbox_avd
+version: 1.0.0
+readme: README.md
+authors:
+  - Claude Bouchard <claude.bouchard@arista.com>
+description: >-
+  Generate Arista AVD inventory files from NetBox as source of truth.
+  Transforms NetBox topology data (devices, roles, IPs) and merges with
+  local AVD defaults to produce ready-to-run AVD inventory.
+license_file: LICENSE
+tags:
+  - arista
+  - avd
+  - netbox
+  - networking
+  - eos
+dependencies:
+  ansible.netcommon: ">=2.0.0"
+  ansible.utils: ">=2.0.0"
+repository: https://github.com/claudebouchard-arista/netbox_to_ansible_AVD
+issues: https://github.com/claudebouchard-arista/netbox_to_ansible_AVD/issues
+build_ignore:
+  - "*.tar.gz"
+  - .gitignore
+  - .github
+  - tests
+  - docker

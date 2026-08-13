@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: generate_avd
+  author: Claude Bouchard
+  description: Generate AVD inventory files from NetBox topology data
+  company: Arista Networks
+  license: Apache-2.0
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EOS
+      versions:
+        - all
+  galaxy_tags:
+    - arista
+    - avd
+    - netbox
+    - networking
+dependencies: []

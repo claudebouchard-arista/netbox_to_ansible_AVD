@@ -1,0 +1,21 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - netbox_site | length > 0
+      - netbox_url | length > 0
+      - netbox_token | length > 0
+    fail_msg: "netbox_site, netbox_url, and netbox_token must be set"
+    quiet: true
+
+- name: Query NetBox for topology data
+  ansible.builtin.include_tasks: query_netbox.yml
+
+- name: Load AVD defaults files
+  ansible.builtin.include_tasks: load_defaults.yml
+
+- name: Transform and merge data
+  ansible.builtin.include_tasks: transform.yml
+
+- name: Write AVD inventory output
+  ansible.builtin.include_tasks: write_output.yml

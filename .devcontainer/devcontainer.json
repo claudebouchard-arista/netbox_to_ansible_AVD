@@ -1,0 +1,55 @@
+{
+  "name": "arista.netbox_avd Collection Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "ANSIBLE_CORE_VERSION": "2.16.12"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.ansible",
+        "ms-python.python",
+        "ms-python.pylint",
+        "ms-python.flake8",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "ansible.python.interpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }
+      }
+    }
+  },
+  "postCreateCommand": "bash /workspaces/netbox_to_ansible_AVD/.devcontainer/setup.sh",
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude-host,type=bind,readonly",
+    "source=${localEnv:HOME}/.local/bin/lclaude,target=/home/vscode/.local/bin/lclaude,type=bind,readonly",
+    "source=${localEnv:HOME}/.local/bin/ai_tool_wrapper.py,target=/home/vscode/.local/bin/ai_tool_wrapper.py,type=bind,readonly",
+    "source=${localEnv:HOME}/.ai-proxy-api-key,target=/home/vscode/.ai-proxy-api-key,type=bind,readonly"
+  ],
+  "runArgs": [
+    "--network=host"
+  ],
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "ANSIBLE_COLLECTIONS_PATH": "/workspaces",
+    "ANTHROPIC_BASE_URL": "https://ai-proxy.infra.corp.arista.io/",
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_USE_VERTEX": "0"
+  }
+}
