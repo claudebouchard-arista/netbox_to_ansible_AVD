@@ -1,12 +1,5 @@
 ---
-- name: Set output directory names
-  ansible.builtin.set_fact:
-    _dc_name: "{{ netbox_site | upper | replace('-', '_') }}"
-    _spine_group: "{{ netbox_site | upper | replace('-', '_') }}_SPINES"
-    _l3leaf_group: "{{ netbox_site | upper | replace('-', '_') }}_L3_LEAVES"
-    _l2leaf_group: "{{ netbox_site | upper | replace('-', '_') }}_L2_LEAVES"
-
-- name: Create output directory structure
+- name: Create base output directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -14,12 +7,15 @@
   loop:
     - "{{ avd_output_dir }}"
     - "{{ avd_output_dir }}/group_vars/FABRIC"
-    - "{{ avd_output_dir }}/group_vars/{{ _dc_name }}"
-    - "{{ avd_output_dir }}/group_vars/{{ _spine_group }}"
-    - "{{ avd_output_dir }}/group_vars/{{ _l3leaf_group }}"
-    - "{{ avd_output_dir }}/group_vars/{{ _l2leaf_group }}"
     - "{{ avd_output_dir }}/group_vars/NETWORK_SERVICES"
     - "{{ avd_output_dir }}/group_vars/CONNECTED_ENDPOINTS"
+
+- name: Create per-site output directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ _avd_sites | map('upper') | map('replace', '-', '_') | product(['', '_SPINES', '_L3_LEAVES', '_L2_LEAVES']) | map('join') | map('regex_replace', '^(.*)$', avd_output_dir + '/group_vars/\\1') | list }}"
 
 - name: Write inventory.yml
   ansible.builtin.copy:
@@ -41,30 +37,34 @@
     mode: "0644"
   when: _avd_connectivity_defaults | length > 0
 
-- name: Write DC settings
+- name: Write per-site DC settings
   ansible.builtin.copy:
     content: "---\n{{ _avd_dc_defaults | to_nice_yaml(indent=2) }}"
-    dest: "{{ avd_output_dir }}/group_vars/{{ _dc_name }}/{{ _dc_name | lower }}.yml"
+    dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}/{{ item | replace('-', '_') }}.yml"
     mode: "0644"
+  loop: "{{ _avd_sites }}"
   when: _avd_dc_defaults | length > 0
 
-- name: Write spine group_vars
+- name: Write per-site spine group_vars
   ansible.builtin.copy:
-    content: "---\n{{ _avd_spines_output | to_nice_yaml(indent=2) }}"
-    dest: "{{ avd_output_dir }}/group_vars/{{ _spine_group }}/spines.yml"
+    content: "---\n{{ lookup('vars', '_avd_site_spines_' + item) | to_nice_yaml(indent=2) }}"
+    dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}_SPINES/spines.yml"
     mode: "0644"
+  loop: "{{ _avd_sites }}"
 
-- name: Write L3 leaf group_vars
+- name: Write per-site L3 leaf group_vars
   ansible.builtin.copy:
-    content: "---\n{{ _avd_l3leaves_output | to_nice_yaml(indent=2) }}"
-    dest: "{{ avd_output_dir }}/group_vars/{{ _l3leaf_group }}/l3_leaves.yml"
+    content: "---\n{{ lookup('vars', '_avd_site_l3leaves_' + item) | to_nice_yaml(indent=2) }}"
+    dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}_L3_LEAVES/l3_leaves.yml"
     mode: "0644"
+  loop: "{{ _avd_sites }}"
 
-- name: Write L2 leaf group_vars
+- name: Write per-site L2 leaf group_vars
   ansible.builtin.copy:
-    content: "---\n{{ _avd_l2leaves_output | to_nice_yaml(indent=2) }}"
-    dest: "{{ avd_output_dir }}/group_vars/{{ _l2leaf_group }}/l2_leaves.yml"
+    content: "---\n{{ lookup('vars', '_avd_site_l2leaves_' + item) | to_nice_yaml(indent=2) }}"
+    dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}_L2_LEAVES/l2_leaves.yml"
     mode: "0644"
+  loop: "{{ _avd_sites }}"
 
 - name: Write network services
   ansible.builtin.copy:
@@ -118,4 +118,4 @@
 
 - name: Display output location
   ansible.builtin.debug:
-    msg: "AVD inventory written to {{ avd_output_dir }}/"
+    msg: "AVD inventory written to {{ avd_output_dir }}/ ({{ _avd_sites | length }} site(s))"

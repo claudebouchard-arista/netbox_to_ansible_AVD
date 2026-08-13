@@ -1,65 +1,31 @@
 ---
-- name: Build inventory from NetBox devices
+# --- Build inventory (single or multi-site) ---
+- name: Build single-site inventory
   ansible.builtin.set_fact:
     _avd_inventory: >-
       {{ _netbox_devices
          | arista.netbox_avd.to_avd_inventory(
-             netbox_site, avd_role_mapping,
+             _avd_sites[0], avd_role_mapping,
              _netbox_ip_addresses, avd_mgmt_interface_name) }}
+  when: not _avd_multi_site | bool
 
-- name: Group devices by AVD role
+- name: Build multi-site inventory
   ansible.builtin.set_fact:
-    _spine_devices: >-
-      {{ _netbox_devices
-         | selectattr('role.slug', 'defined')
-         | selectattr('role.slug', 'equalto', (avd_role_mapping | dict2items | selectattr('value', 'equalto', 'spine') | map(attribute='key') | first | default('spine')))
-         | list }}
-    _l3leaf_devices: >-
-      {{ _netbox_devices
-         | selectattr('role.slug', 'defined')
-         | selectattr('role.slug', 'equalto', (avd_role_mapping | dict2items | selectattr('value', 'equalto', 'l3leaf') | map(attribute='key') | first | default('l3-leaf')))
-         | list }}
-    _l2leaf_devices: >-
-      {{ _netbox_devices
-         | selectattr('role.slug', 'defined')
-         | selectattr('role.slug', 'equalto', (avd_role_mapping | dict2items | selectattr('value', 'equalto', 'l2leaf') | map(attribute='key') | first | default('l2-leaf')))
-         | list }}
+    _avd_inventory: >-
+      {{ _netbox_devices_by_site
+         | arista.netbox_avd.to_avd_multi_site_inventory(
+             avd_role_mapping,
+             _netbox_ip_addresses, avd_mgmt_interface_name) }}
+  when: _avd_multi_site | bool
 
-- name: Build spine node list
-  ansible.builtin.set_fact:
-    _spine_nodes: >-
-      {{ _spine_devices
-         | arista.netbox_avd.to_avd_spine_nodes(
-             _netbox_ip_addresses, avd_node_id_field,
-             avd_mgmt_interface_name) }}
+# --- Per-site transforms ---
+- name: Transform per-site data
+  ansible.builtin.include_tasks: transform_site.yml
+  loop: "{{ _avd_sites }}"
+  loop_control:
+    loop_var: _current_site
 
-- name: Get spine names and BGP AS
-  ansible.builtin.set_fact:
-    _spine_names: "{{ _spine_devices | arista.netbox_avd.to_avd_spine_names }}"
-    _spine_bgp_as: "{{ _spine_devices | arista.netbox_avd.to_avd_spine_bgp_as }}"
-
-- name: Extract IP pools from NetBox prefixes
-  ansible.builtin.set_fact:
-    _avd_ip_pools: "{{ _netbox_prefixes | arista.netbox_avd.to_avd_ip_pools }}"
-
-- name: Build L3 leaf node groups
-  ansible.builtin.set_fact:
-    _l3leaf_node_groups: >-
-      {{ _l3leaf_devices
-         | arista.netbox_avd.to_avd_l3leaf_node_groups(
-             _avd_l3leaf_defaults.get('l3leaf', {}),
-             _netbox_ip_addresses, avd_node_id_field,
-             avd_node_group_field, avd_mgmt_interface_name) }}
-
-- name: Build L2 leaf node groups
-  ansible.builtin.set_fact:
-    _l2leaf_node_groups: >-
-      {{ _l2leaf_devices
-         | arista.netbox_avd.to_avd_l2leaf_node_groups(
-             _avd_l2leaf_defaults.get('l2leaf', {}),
-             _netbox_ip_addresses, avd_node_id_field,
-             avd_node_group_field, avd_mgmt_interface_name) }}
-
+# --- Shared transforms (network services, connected endpoints) ---
 - name: Build network services from NetBox VLANs/VRFs
   ansible.builtin.set_fact:
     _avd_network_services: >-
@@ -75,58 +41,11 @@
          | arista.netbox_avd.to_avd_connected_endpoints(
              _netbox_interfaces, _netbox_devices, avd_role_mapping) }}
 
-- name: Build spine defaults from pools
-  ansible.builtin.set_fact:
-    _spine_netbox_defaults:
-      bgp_as: "{{ _spine_bgp_as | default(omit, true) }}"
-      loopback_ipv4_pool: "{{ _avd_ip_pools.loopback | default(omit, true) }}"
-
-- name: Assemble spine group_vars
-  ansible.builtin.set_fact:
-    _avd_spines_output:
-      type: spine
-      spine: >-
-        {{ _avd_spine_defaults.get('spine', {})
-           | arista.netbox_avd.to_avd_merge_defaults(
-               {'defaults': (_avd_spine_defaults.get('spine', {}).get('defaults', {})
-                | arista.netbox_avd.to_avd_merge_defaults(_spine_netbox_defaults)),
-                'nodes': _spine_nodes}) }}
-
-- name: Build L3 leaf defaults from pools
-  ansible.builtin.set_fact:
-    _l3leaf_netbox_defaults:
-      uplink_switches: "{{ _spine_names }}"
-      loopback_ipv4_pool: "{{ _avd_ip_pools.loopback | default(omit, true) }}"
-      vtep_loopback_ipv4_pool: "{{ _avd_ip_pools.vtep | default(omit, true) }}"
-      uplink_ipv4_pool: "{{ _avd_ip_pools.p2p_uplink | default(omit, true) }}"
-      mlag_peer_ipv4_pool: "{{ _avd_ip_pools.mlag_peer | default(omit, true) }}"
-      mlag_peer_l3_ipv4_pool: "{{ _avd_ip_pools.mlag_peer_l3 | default(omit, true) }}"
-
-- name: Assemble L3 leaf group_vars
-  ansible.builtin.set_fact:
-    _avd_l3leaves_output:
-      type: l3leaf
-      l3leaf: >-
-        {{ _avd_l3leaf_defaults.get('l3leaf', {})
-           | arista.netbox_avd.to_avd_merge_defaults(
-               {'defaults': (_avd_l3leaf_defaults.get('l3leaf', {}).get('defaults', {})
-                | arista.netbox_avd.to_avd_merge_defaults(_l3leaf_netbox_defaults)),
-                'node_groups': _l3leaf_node_groups}) }}
-
-- name: Assemble L2 leaf group_vars
-  ansible.builtin.set_fact:
-    _avd_l2leaves_output:
-      type: l2leaf
-      l2leaf: >-
-        {{ _avd_l2leaf_defaults.get('l2leaf', {})
-           | arista.netbox_avd.to_avd_merge_defaults(
-               {'node_groups': _l2leaf_node_groups}) }}
-
 - name: Display transform summary
   ansible.builtin.debug:
     msg: >-
-      Transformed: {{ _spine_devices | length }} spines (AS {{ _spine_bgp_as | default('?') }}),
-      {{ _l3leaf_devices | length }} L3 leaves ({{ _l3leaf_node_groups | length }} groups),
-      {{ _l2leaf_devices | length }} L2 leaves ({{ _l2leaf_node_groups | length }} groups),
-      {{ _netbox_vlans | length }} VLANs, {{ _netbox_vrfs | length }} VRFs,
-      {{ _netbox_cables | length }} cables -> connected endpoints
+      Transformed {{ _avd_sites | length }} site(s):
+      {{ _netbox_devices | length }} devices,
+      {{ _netbox_vlans | length }} VLANs,
+      {{ _netbox_vrfs | length }} VRFs,
+      {{ _netbox_cables | length }} cables
