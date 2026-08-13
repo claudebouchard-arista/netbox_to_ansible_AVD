@@ -82,7 +82,7 @@ class TestSeededData:
             assert data["count"] >= 1, f"Role '{slug}' not found"
 
     def test_device_count(self, netbox_devices):
-        assert len(netbox_devices) == 8
+        assert len(netbox_devices) == 10  # 8 network + 2 servers
 
     def test_spine_devices(self, netbox_devices):
         spines = [d for d in netbox_devices if d["role"]["slug"] == "spine"]
@@ -103,7 +103,9 @@ class TestSeededData:
         assert names == {"dc1-leaf1c", "dc1-leaf2c"}
 
     def test_custom_fields_exist(self, netbox_devices):
-        for dev in netbox_devices:
+        network_devs = [d for d in netbox_devices
+                        if d["role"]["slug"] in ("spine", "l3-leaf", "l2-leaf")]
+        for dev in network_devs:
             cf = dev.get("custom_fields", {})
             assert "avd_node_id" in cf, f"{dev['name']} missing avd_node_id"
             assert cf["avd_node_id"] is not None, f"{dev['name']} has null node_id"

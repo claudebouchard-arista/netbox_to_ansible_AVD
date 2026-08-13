@@ -24,7 +24,7 @@ jobs:
           pip install -r ansible_collections/arista/netbox_avd/requirements.txt
 
       - name: Flake8
-        run: flake8 ansible_collections/ tests/ --max-line-length=120
+        run: flake8 ansible_collections/ tests/
 
       - name: yamllint
         run: yamllint -d relaxed ansible_collections/arista/netbox_avd/
@@ -101,7 +101,7 @@ jobs:
 
       - name: Install AVD collection
         run: |
-          pip install pyavd
+          pip install "pyavd[ansible]"
           ansible-galaxy collection install arista.avd -p /home/runner/.ansible/collections --force
 
       - name: Generate AVD inventory from NetBox
