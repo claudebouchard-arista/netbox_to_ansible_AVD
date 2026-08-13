@@ -11,7 +11,7 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 lint: ## Run linters (flake8 + yamllint)
-	flake8 ansible_collections/ tests/ --max-line-length=120 --ignore=E127,W503
+	flake8 ansible_collections/ tests/
 	yamllint -d relaxed ansible_collections/arista/netbox_avd/
 
 test-unit: ## Run unit tests
