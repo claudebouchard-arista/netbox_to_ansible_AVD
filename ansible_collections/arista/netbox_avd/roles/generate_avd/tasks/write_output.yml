@@ -75,14 +75,14 @@
 
 - name: Write per-site spine group_vars
   ansible.builtin.copy:
-    content: "---\n{{ lookup('vars', '_avd_site_spines_' + item | replace('-', '_')) | to_nice_yaml(indent=2) }}"
+    content: "---\n{{ lookup('vars', '_avd_site_spines_' + item | replace('-', '_')) | arista.netbox_avd.to_avd_fix_types | to_nice_yaml(indent=2) }}"
     dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}_{{ _spine_suffix }}/spines.yml"
     mode: "0644"
   loop: "{{ _avd_sites }}"
 
 - name: Write per-site L3 leaf group_vars
   ansible.builtin.copy:
-    content: "---\n{{ lookup('vars', '_avd_site_l3leaves_' + item | replace('-', '_')) | to_nice_yaml(indent=2) }}"
+    content: "---\n{{ lookup('vars', '_avd_site_l3leaves_' + item | replace('-', '_')) | arista.netbox_avd.to_avd_fix_types | to_nice_yaml(indent=2) }}"
     dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}_{{ _l3leaf_suffix }}/l3_leaves.yml"
     mode: "0644"
   loop: "{{ _avd_sites }}"
@@ -90,7 +90,7 @@
 
 - name: Write per-site L2 leaf group_vars
   ansible.builtin.copy:
-    content: "---\n{{ lookup('vars', '_avd_site_l2leaves_' + item | replace('-', '_')) | to_nice_yaml(indent=2) }}"
+    content: "---\n{{ lookup('vars', '_avd_site_l2leaves_' + item | replace('-', '_')) | arista.netbox_avd.to_avd_fix_types | to_nice_yaml(indent=2) }}"
     dest: "{{ avd_output_dir }}/group_vars/{{ item | upper | replace('-', '_') }}_{{ _l2leaf_suffix }}/l2_leaves.yml"
     mode: "0644"
   loop: "{{ _avd_sites }}"
@@ -98,14 +98,14 @@
 
 - name: Write network services
   ansible.builtin.copy:
-    content: "---\n{{ _avd_network_services | to_nice_yaml(indent=2) }}"
+    content: "---\n{{ _avd_network_services | arista.netbox_avd.to_avd_fix_types | to_nice_yaml(indent=2) }}"
     dest: "{{ avd_output_dir }}/group_vars/{{ avd_network_services_name }}/network_services.yml"
     mode: "0644"
   when: _avd_network_services | length > 0
 
 - name: Write connected endpoints
   ansible.builtin.copy:
-    content: "---\n{{ _avd_connected_endpoints | to_nice_yaml(indent=2) }}"
+    content: "---\n{{ _avd_connected_endpoints | arista.netbox_avd.to_avd_fix_types | to_nice_yaml(indent=2) }}"
     dest: "{{ avd_output_dir }}/group_vars/{{ avd_connected_endpoints_name }}/connected_endpoints.yml"
     mode: "0644"
   when: _avd_connected_endpoints | length > 0

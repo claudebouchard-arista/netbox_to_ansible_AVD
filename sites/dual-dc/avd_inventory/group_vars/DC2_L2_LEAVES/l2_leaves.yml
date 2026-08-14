@@ -1,6 +1,7 @@
 ---
 l2leaf:
   defaults:
+    mlag_peer_ipv4_pool: 10.255.129.64/27
     platform: cEOSLab
     spanning_tree_mode: mstp
   node_groups:

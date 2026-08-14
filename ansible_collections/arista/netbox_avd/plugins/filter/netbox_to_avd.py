@@ -676,6 +676,33 @@ def to_avd_spine_bgp_as(devices, bgp_as_field="avd_bgp_as"):
     return _get_group_bgp_as(devices, bgp_as_field)
 
 
+def to_avd_fix_types(data):
+    """Recursively fix numeric types that Ansible stringifies.
+
+    Ansible's Jinja2 templating converts integers to strings when passing
+    through set_fact. This filter walks the data structure and converts
+    known numeric fields back to integers.
+    """
+    INT_FIELDS = {"id", "bgp_as", "vrf_vni", "mac_vrf_vni_base",
+                  "loopback", "spanning_tree_priority", "native_vlan",
+                  "loopback_ipv4_offset", "vid"}
+
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if k in INT_FIELDS and v is not None:
+                try:
+                    result[k] = int(v)
+                except (ValueError, TypeError):
+                    result[k] = v
+            else:
+                result[k] = to_avd_fix_types(v)
+        return result
+    elif isinstance(data, list):
+        return [to_avd_fix_types(item) for item in data]
+    return data
+
+
 class FilterModule:
     """Jinja2 filters for transforming NetBox data to AVD structures."""
 
@@ -692,4 +719,5 @@ class FilterModule:
             "to_avd_connected_endpoints": to_avd_connected_endpoints,
             "to_avd_spine_bgp_as": to_avd_spine_bgp_as,
             "to_avd_ip_pools": to_avd_ip_pools,
+            "to_avd_fix_types": to_avd_fix_types,
         }

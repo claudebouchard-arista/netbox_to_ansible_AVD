@@ -81,7 +81,17 @@
     _spine_config_key: "{{ _spine_type }}"
     _spine_defaults_data: "{{ _avd_spine_defaults.get(_spine_type, _avd_spine_defaults.get('spine', {})) }}"
 
-- name: "{{ _current_site | upper }}: Build spine merged data"
+- name: "{{ _current_site | upper }}: Build spine merged data (flat nodes for spine type)"
+  ansible.builtin.set_fact:
+    _site_spine_merged: >-
+      {{ _spine_defaults_data
+         | arista.netbox_avd.to_avd_merge_defaults(
+             {'defaults': (_spine_defaults_data.get('defaults', {})
+              | arista.netbox_avd.to_avd_merge_defaults(_site_spine_nb_defaults)),
+              'nodes': _site_spine_nodes}) }}
+  when: _spine_type == 'spine'
+
+- name: "{{ _current_site | upper }}: Build spine merged data (node_groups for l2spine/l3spine)"
   ansible.builtin.set_fact:
     _site_spine_merged: >-
       {{ _spine_defaults_data
@@ -92,6 +102,7 @@
                   _spine_defaults_data,
                   _netbox_ip_addresses, avd_node_id_field,
                   avd_node_group_field, avd_mgmt_interface_name))}) }}
+  when: _spine_type != 'spine'
 
 - name: "{{ _current_site | upper }}: Assemble spine group_vars"
   ansible.builtin.set_fact:
