@@ -1,9 +1,5 @@
 ---
 # --- Build inventory (single or multi-site) ---
-- name: Resolve group config
-  ansible.builtin.set_fact:
-    _avd_group_config: "{{ avd_group_config if avd_group_config | length > 0 else omit }}"
-
 - name: Build single-site inventory
   ansible.builtin.set_fact:
     _avd_inventory: >-
@@ -11,7 +7,7 @@
          | arista.netbox_avd.to_avd_inventory(
              _avd_sites[0], avd_role_mapping,
              _netbox_ip_addresses, avd_mgmt_interface_name,
-             _avd_group_config | default(none, true),
+             avd_group_config if avd_group_config | length > 0 else none,
              avd_network_services_name,
              avd_connected_endpoints_name) }}
   when: not _avd_multi_site | bool
@@ -23,7 +19,7 @@
          | arista.netbox_avd.to_avd_multi_site_inventory(
              avd_role_mapping,
              _netbox_ip_addresses, avd_mgmt_interface_name,
-             _avd_group_config | default(none, true)) }}
+             avd_group_config if avd_group_config | length > 0 else none) }}
   when: _avd_multi_site | bool
 
 # --- Per-site transforms ---
