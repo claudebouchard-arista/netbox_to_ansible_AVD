@@ -32,29 +32,39 @@ up: ## Start NetBox stack
 down: ## Stop NetBox stack
 	$(DOCKER_COMPOSE) down -v
 
-seed: ## Seed NetBox with test data
+seed: ## Seed NetBox with DC1 test data
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py
 
-generate: ## Generate sites/dc1 from NetBox (requires NetBox running + seeded)
+seed-dual: ## Seed NetBox with DC1 + DC2 (dual-dc) test data
+	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
+	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --dual-dc
+
+generate: ## Generate all sites from NetBox (requires NetBox running + seeded)
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	if [ -z "$$PORT" ]; then echo "NetBox not running. Run 'make up && make seed' first."; exit 1; fi; \
-	echo "=== Generating AVD inventory from NetBox ==="; \
-	cd sites/dc1 && NETBOX_URL="http://localhost:$$PORT" $(COLLECTIONS_PATH) ansible-playbook generate.yml; \
-	echo "=== Running AVD build ==="; \
-	cd sites/dc1/avd_inventory && $(COLLECTIONS_PATH) ansible-playbook build.yml -i inventory.yml; \
-	echo "=== Done: sites/dc1/avd_inventory/ ==="
+	for site_dir in sites/*/; do \
+		[ -f "$$site_dir/generate.yml" ] || continue; \
+		echo "=== Generating $$site_dir ==="; \
+		cd $(CURDIR)/$$site_dir && NETBOX_URL="http://localhost:$$PORT" $(COLLECTIONS_PATH) ansible-playbook generate.yml; \
+		echo "=== AVD build $$site_dir ==="; \
+		cd $(CURDIR)/$$site_dir/avd_inventory && $(COLLECTIONS_PATH) ansible-playbook build.yml -i inventory.yml; \
+	done; \
+	echo "=== Done ==="
 
 verify: ## Verify generated output matches committed reference (requires NetBox)
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	if [ -z "$$PORT" ]; then echo "NetBox not running. Run 'make up && make seed' first."; exit 1; fi; \
-	echo "=== Regenerating sites/dc1 from NetBox ==="; \
-	cd sites/dc1 && NETBOX_URL="http://localhost:$$PORT" $(COLLECTIONS_PATH) ansible-playbook generate.yml; \
-	cd sites/dc1/avd_inventory && $(COLLECTIONS_PATH) ansible-playbook build.yml -i inventory.yml; \
+	for site_dir in sites/*/; do \
+		[ -f "$$site_dir/generate.yml" ] || continue; \
+		echo "=== Regenerating $$site_dir ==="; \
+		cd $(CURDIR)/$$site_dir && NETBOX_URL="http://localhost:$$PORT" $(COLLECTIONS_PATH) ansible-playbook generate.yml; \
+		cd $(CURDIR)/$$site_dir/avd_inventory && $(COLLECTIONS_PATH) ansible-playbook build.yml -i inventory.yml; \
+	done; \
 	echo "=== Checking for drift ==="; \
-	if git diff --name-only sites/dc1/avd_inventory/ | grep -q .; then \
+	if git diff --name-only sites/ | grep -q .; then \
 		echo "FAIL: Generated output differs from committed reference!"; \
-		git diff --stat sites/dc1/avd_inventory/; \
+		git diff --stat sites/; \
 		exit 1; \
 	fi; \
 	echo "PASS: All generated output matches committed reference."
