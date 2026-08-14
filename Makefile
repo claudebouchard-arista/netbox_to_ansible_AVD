@@ -40,6 +40,14 @@ seed-dual: ## Seed NetBox with DC1 + DC2 (dual-dc) test data
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --dual-dc
 
+seed-l2ls: ## Seed NetBox with L2LS site test data
+	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
+	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --l2ls
+
+seed-all: ## Seed all topologies (DC1, DC2, L2LS)
+	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
+	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --all
+
 generate: ## Generate all sites from NetBox (requires NetBox running + seeded)
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	if [ -z "$$PORT" ]; then echo "NetBox not running. Run 'make up && make seed' first."; exit 1; fi; \

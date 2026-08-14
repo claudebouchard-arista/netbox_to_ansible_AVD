@@ -1,0 +1,8 @@
+---
+# L2LS spines are type l2spine (pure L2, MLAG pair, no BGP)
+l2spine:
+  defaults:
+    platform: cEOSLab
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 4096
+    mlag_interfaces: [Ethernet47, Ethernet48]

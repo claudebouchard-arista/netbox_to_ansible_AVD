@@ -1,0 +1,20 @@
+---
+l2spine:
+  defaults:
+    mlag_interfaces:
+    - Ethernet47
+    - Ethernet48
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    platform: cEOSLab
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 4096
+  node_groups:
+  - group: SPINES
+    nodes:
+    - id: 1
+      mgmt_ip: 172.16.100.101/24
+      name: l2ls-spine1
+    - id: 2
+      mgmt_ip: 172.16.100.102/24
+      name: l2ls-spine2
+type: l2spine

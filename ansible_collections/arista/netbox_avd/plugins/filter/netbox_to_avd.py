@@ -80,95 +80,83 @@ def _group_devices_by_role(devices, role_mapping):
     return grouped
 
 
+DEFAULT_GROUP_CONFIG = {
+    "spine": {"suffix": "SPINES", "in_network_services": False,
+              "in_connected_endpoints": False},
+    "l3leaf": {"suffix": "L3_LEAVES", "in_network_services": True,
+               "in_connected_endpoints": True},
+    "l2leaf": {"suffix": "L2_LEAVES", "in_network_services": True,
+               "in_connected_endpoints": True},
+    "l2spine": {"suffix": "SPINES", "in_network_services": True,
+                "in_connected_endpoints": True},
+}
+
+L2LS_GROUP_CONFIG = {
+    "l2spine": {"suffix": "SPINES", "in_network_services": True,
+                "in_connected_endpoints": True},
+    "l2leaf": {"suffix": "LEAFS", "in_network_services": True,
+               "in_connected_endpoints": True},
+}
+
+
 def to_avd_inventory(devices, site_name, role_mapping, ip_addresses=None,
-                     mgmt_interface_name="Management0"):
+                     mgmt_interface_name="Management0",
+                     group_config=None,
+                     network_services_name="NETWORK_SERVICES",
+                     connected_endpoints_name="CONNECTED_ENDPOINTS"):
     """Build AVD inventory.yml structure from NetBox devices.
 
     Args:
         devices: List of NetBox device dicts.
-        site_name: Site name used for DC group naming (e.g., "dc1" -> "DC1").
+        site_name: Site name used for DC group naming.
         role_mapping: Dict mapping NetBox role slugs to AVD types.
-        ip_addresses: Optional list of IP address dicts for management IPs.
-        mgmt_interface_name: Name of the management interface.
-
-    Returns:
-        Dict representing inventory.yml content.
+        ip_addresses: Optional IP address dicts for management IPs.
+        mgmt_interface_name: Management interface name.
+        group_config: Dict mapping AVD types to group naming config.
+        network_services_name: Name of the network services group.
+        connected_endpoints_name: Name of the connected endpoints group.
     """
     if not devices:
         return {}
 
     ip_addresses = ip_addresses or []
+    gc = group_config or DEFAULT_GROUP_CONFIG
     dc_name = site_name.upper().replace("-", "_")
     grouped = _group_devices_by_role(devices, role_mapping)
 
-    spine_group = f"{dc_name}_SPINES"
-    l3leaf_group = f"{dc_name}_L3_LEAVES"
-    l2leaf_group = f"{dc_name}_L2_LEAVES"
-
     dc_children = {}
+    ns_children = {}
+    ce_children = {}
 
-    if "spine" in grouped:
+    for avd_type, devs in grouped.items():
+        type_cfg = gc.get(avd_type)
+        if not type_cfg:
+            continue
+        group_name = f"{dc_name}_{type_cfg['suffix']}"
         hosts = {}
-        for dev in sorted(grouped["spine"], key=lambda d: d.get("name", "")):
+        for dev in sorted(devs, key=lambda d: d.get("name", "")):
             name = dev.get("name")
-            host_entry = {}
+            entry = {}
             mgmt_ip = _get_mgmt_ip(dev, ip_addresses, mgmt_interface_name)
             if mgmt_ip:
-                host_entry["ansible_host"] = mgmt_ip.split("/")[0]
-            hosts[name] = host_entry or None
-        dc_children[spine_group] = {"hosts": hosts}
-
-    if "l3leaf" in grouped:
-        hosts = {}
-        for dev in sorted(
-            grouped["l3leaf"], key=lambda d: d.get("name", "")
-        ):
-            name = dev.get("name")
-            host_entry = {}
-            mgmt_ip = _get_mgmt_ip(dev, ip_addresses, mgmt_interface_name)
-            if mgmt_ip:
-                host_entry["ansible_host"] = mgmt_ip.split("/")[0]
-            hosts[name] = host_entry or None
-        dc_children[l3leaf_group] = {"hosts": hosts}
-
-    if "l2leaf" in grouped:
-        hosts = {}
-        for dev in sorted(
-            grouped["l2leaf"], key=lambda d: d.get("name", "")
-        ):
-            name = dev.get("name")
-            host_entry = {}
-            mgmt_ip = _get_mgmt_ip(dev, ip_addresses, mgmt_interface_name)
-            if mgmt_ip:
-                host_entry["ansible_host"] = mgmt_ip.split("/")[0]
-            hosts[name] = host_entry or None
-        dc_children[l2leaf_group] = {"hosts": hosts}
-
-    network_services_children = {}
-    connected_endpoints_children = {}
-    if "l3leaf" in grouped:
-        network_services_children[l3leaf_group] = None
-        connected_endpoints_children[l3leaf_group] = None
-    if "l2leaf" in grouped:
-        network_services_children[l2leaf_group] = None
-        connected_endpoints_children[l2leaf_group] = None
+                entry["ansible_host"] = mgmt_ip.split("/")[0]
+            hosts[name] = entry or None
+        dc_children[group_name] = {"hosts": hosts}
+        if type_cfg.get("in_network_services"):
+            ns_children[group_name] = None
+        if type_cfg.get("in_connected_endpoints"):
+            ce_children[group_name] = None
 
     inventory = {
         "all": {
             "children": {
                 "FABRIC": {
                     "children": {
-                        dc_name: {
-                            "children": dc_children,
-                        }
+                        dc_name: {"children": dc_children},
                     }
                 },
-                "NETWORK_SERVICES": {
-                    "children": network_services_children,
-                },
-                "CONNECTED_ENDPOINTS": {
-                    "children": connected_endpoints_children,
-                },
+                network_services_name: {"children": ns_children},
+                connected_endpoints_name: {"children": ce_children},
             }
         }
     }
@@ -178,22 +166,14 @@ def to_avd_inventory(devices, site_name, role_mapping, ip_addresses=None,
 
 def to_avd_multi_site_inventory(sites_devices, role_mapping,
                                 ip_addresses=None,
-                                mgmt_interface_name="Management0"):
-    """Build AVD inventory for multiple sites (dual-dc, etc.).
-
-    Args:
-        sites_devices: Dict of {site_slug: devices_list}.
-        role_mapping: Dict mapping NetBox role slugs to AVD types.
-        ip_addresses: All IP address dicts across sites.
-        mgmt_interface_name: Management interface name.
-
-    Returns:
-        Dict representing a multi-site inventory.yml.
-    """
+                                mgmt_interface_name="Management0",
+                                group_config=None):
+    """Build AVD inventory for multiple sites (dual-dc, etc.)."""
     if not sites_devices:
         return {}
 
     ip_addresses = ip_addresses or []
+    gc = group_config or DEFAULT_GROUP_CONFIG
     dc_children = {}
     ns_children = {}
     ce_children = {}
@@ -201,32 +181,27 @@ def to_avd_multi_site_inventory(sites_devices, role_mapping,
     for site_slug, devices in sorted(sites_devices.items()):
         dc_name = site_slug.upper().replace("-", "_")
         grouped = _group_devices_by_role(devices, role_mapping)
-
-        spine_group = f"{dc_name}_SPINES"
-        l3leaf_group = f"{dc_name}_L3_LEAVES"
-        l2leaf_group = f"{dc_name}_L2_LEAVES"
-
         site_children = {}
 
-        for avd_type, group_name in [("spine", spine_group),
-                                     ("l3leaf", l3leaf_group),
-                                     ("l2leaf", l2leaf_group)]:
-            if avd_type in grouped:
-                hosts = {}
-                for dev in sorted(grouped[avd_type],
-                                  key=lambda d: d.get("name", "")):
-                    name = dev.get("name")
-                    entry = {}
-                    mgmt_ip = _get_mgmt_ip(dev, ip_addresses,
-                                           mgmt_interface_name)
-                    if mgmt_ip:
-                        entry["ansible_host"] = mgmt_ip.split("/")[0]
-                    hosts[name] = entry or None
-                site_children[group_name] = {"hosts": hosts}
-
-                if avd_type in ("l3leaf", "l2leaf"):
-                    ns_children[group_name] = None
-                    ce_children[group_name] = None
+        for avd_type, devs in grouped.items():
+            type_cfg = gc.get(avd_type)
+            if not type_cfg:
+                continue
+            group_name = f"{dc_name}_{type_cfg['suffix']}"
+            hosts = {}
+            for dev in sorted(devs, key=lambda d: d.get("name", "")):
+                name = dev.get("name")
+                entry = {}
+                mgmt_ip = _get_mgmt_ip(dev, ip_addresses,
+                                       mgmt_interface_name)
+                if mgmt_ip:
+                    entry["ansible_host"] = mgmt_ip.split("/")[0]
+                hosts[name] = entry or None
+            site_children[group_name] = {"hosts": hosts}
+            if type_cfg.get("in_network_services"):
+                ns_children[group_name] = None
+            if type_cfg.get("in_connected_endpoints"):
+                ce_children[group_name] = None
 
         dc_children[dc_name] = {"children": site_children}
 
@@ -701,6 +676,33 @@ def to_avd_spine_bgp_as(devices, bgp_as_field="avd_bgp_as"):
     return _get_group_bgp_as(devices, bgp_as_field)
 
 
+def to_avd_fix_types(data):
+    """Recursively fix numeric types that Ansible stringifies.
+
+    Ansible's Jinja2 templating converts integers to strings when passing
+    through set_fact. This filter walks the data structure and converts
+    known numeric fields back to integers.
+    """
+    INT_FIELDS = {"id", "bgp_as", "vrf_vni", "mac_vrf_vni_base",
+                  "loopback", "spanning_tree_priority", "native_vlan",
+                  "loopback_ipv4_offset", "vid"}
+
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if k in INT_FIELDS and v is not None:
+                try:
+                    result[k] = int(v)
+                except (ValueError, TypeError):
+                    result[k] = v
+            else:
+                result[k] = to_avd_fix_types(v)
+        return result
+    elif isinstance(data, list):
+        return [to_avd_fix_types(item) for item in data]
+    return data
+
+
 class FilterModule:
     """Jinja2 filters for transforming NetBox data to AVD structures."""
 
@@ -717,4 +719,5 @@ class FilterModule:
             "to_avd_connected_endpoints": to_avd_connected_endpoints,
             "to_avd_spine_bgp_as": to_avd_spine_bgp_as,
             "to_avd_ip_pools": to_avd_ip_pools,
+            "to_avd_fix_types": to_avd_fix_types,
         }

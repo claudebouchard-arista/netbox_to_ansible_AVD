@@ -1,8 +1,9 @@
 ---
 spine:
   defaults:
-    bgp_as: '65100'
+    bgp_as: 65100
     loopback_ipv4_pool: 10.255.0.0/27
+    mlag_peer_ipv4_pool: 10.255.1.64/27
     platform: cEOSLab
   nodes:
   - id: 1

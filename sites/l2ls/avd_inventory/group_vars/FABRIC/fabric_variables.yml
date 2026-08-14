@@ -1,0 +1,47 @@
+---
+aaa_settings:
+  authentication:
+    policies:
+      local:
+        allow_nopassword: true
+  authorization:
+    exec:
+      default: local
+  local_users:
+  - name: admin
+    no_password: true
+    privilege: 15
+    role: network-admin
+  - name: arista
+    privilege: 15
+    role: network-admin
+    sha512_password: $6$Enl0WfE32FthwyiJ$yTyGaEJ2uPKLU.F7314YtB7J1jrzrMi7ogXIRTEHQfLdLgKWWmr1UvNlZLN6AyuxET7G5aH3AI9OYRzxVTkB1.
+default_interfaces:
+- downlink_interfaces:
+  - Ethernet1-8
+  mlag_interfaces:
+  - Ethernet47-48
+  platforms:
+  - default
+  types:
+  - l2spine
+- mlag_interfaces:
+  - Ethernet47-48
+  platforms:
+  - default
+  types:
+  - l2leaf
+  uplink_interfaces:
+  - Ethernet1-2
+dns_settings:
+  servers:
+  - ip_address: 8.8.4.4
+  - ip_address: 8.8.8.8
+eos_designs_documentation:
+  connected_endpoints: true
+fabric_name: L2LS_SITE1
+ntp_settings:
+  server_vrf: use_mgmt_interface_vrf
+  servers:
+  - name: time.google.com
+  - name: pool.ntp.org

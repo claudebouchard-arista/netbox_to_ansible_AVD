@@ -1,0 +1,10 @@
+---
+tenants:
+- l2vlans:
+  - id: 10
+    name: BLUE-NET
+  - id: 20
+    name: GREEN-NET
+  - id: 30
+    name: ORANGE-NET
+  name: MY_FABRIC

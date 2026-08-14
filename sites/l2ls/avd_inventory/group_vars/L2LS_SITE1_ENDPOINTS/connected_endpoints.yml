@@ -1,0 +1,62 @@
+---
+servers:
+- adapters:
+  - endpoint_ports:
+    - Eth1
+    - Eth2
+    mode: trunk
+    port_channel:
+      mode: active
+    spanning_tree_portfast: edge
+    switch_ports:
+    - Ethernet5
+    - Ethernet5
+    switches:
+    - l2ls-spine1
+    - l2ls-spine2
+    vlans: 10,20,30
+  name: l2ls-firewall
+- adapters:
+  - endpoint_ports:
+    - Eth1
+    mode: access
+    spanning_tree_portfast: edge
+    switch_ports:
+    - Ethernet3
+    switches:
+    - l2ls-leaf4
+    vlans: '30'
+  name: l2ls-host2
+- adapters:
+  - endpoint_ports:
+    - Eth1
+    mode: access
+    spanning_tree_portfast: edge
+    switch_ports:
+    - Ethernet3
+    switches:
+    - l2ls-leaf1
+    vlans: '10'
+  name: l2ls-hostA
+- adapters:
+  - endpoint_ports:
+    - Eth1
+    mode: access
+    spanning_tree_portfast: edge
+    switch_ports:
+    - Ethernet3
+    switches:
+    - l2ls-leaf2
+    vlans: '20'
+  name: l2ls-hostB
+- adapters:
+  - endpoint_ports:
+    - Eth1
+    mode: access
+    spanning_tree_portfast: edge
+    switch_ports:
+    - Ethernet3
+    switches:
+    - l2ls-leaf3
+    vlans: '10'
+  name: l2ls-hostC
