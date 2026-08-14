@@ -1,11 +1,17 @@
 ---
+- name: Resolve site list
+  ansible.builtin.set_fact:
+    _avd_sites: "{{ netbox_sites if netbox_sites | length > 0 else [netbox_site] }}"
+    _avd_multi_site: "{{ netbox_sites | length > 1 }}"
+
 - name: Validate required variables
   ansible.builtin.assert:
     that:
-      - netbox_site | length > 0
+      - _avd_sites | length > 0
+      - _avd_sites[0] | length > 0
       - netbox_url | length > 0
       - netbox_token | length > 0
-    fail_msg: "netbox_site, netbox_url, and netbox_token must be set"
+    fail_msg: "netbox_site or netbox_sites, netbox_url, and netbox_token must be set"
     quiet: true
 
 - name: Query NetBox for topology data

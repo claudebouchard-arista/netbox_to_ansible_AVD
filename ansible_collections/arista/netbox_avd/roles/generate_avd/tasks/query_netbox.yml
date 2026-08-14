@@ -1,20 +1,25 @@
 ---
-- name: Fetch all devices from NetBox for site
+- name: Fetch devices from NetBox for all sites
   ansible.builtin.uri:
-    url: "{{ netbox_url }}/api/dcim/devices/?site={{ netbox_site }}&status={{ netbox_device_status }}&limit=1000"
+    url: "{{ netbox_url }}/api/dcim/devices/?site={{ item }}&status={{ netbox_device_status }}&limit=1000"
     method: GET
     headers:
       Authorization: "Token {{ netbox_token }}"
       Accept: application/json
     validate_certs: "{{ netbox_validate_certs }}"
     return_content: true
-  register: _netbox_devices_raw
+  loop: "{{ _avd_sites }}"
+  register: _netbox_devices_per_site_raw
 
-- name: Set devices fact
+- name: Set per-site devices and combined devices facts
   ansible.builtin.set_fact:
-    _netbox_devices: "{{ _netbox_devices_raw.json.results }}"
+    _netbox_devices: "{{ _netbox_devices_per_site_raw.results | map(attribute='json') | map(attribute='results') | flatten }}"
+    _netbox_devices_by_site: >-
+      {{ dict(_avd_sites | zip(
+           _netbox_devices_per_site_raw.results | map(attribute='json') | map(attribute='results')
+         )) }}
 
-- name: Fetch IP addresses for site devices
+- name: Fetch IP addresses for all devices
   ansible.builtin.uri:
     url: "{{ netbox_url }}/api/ipam/ip-addresses/?device_id={{ item.id }}&limit=1000"
     method: GET
@@ -32,9 +37,9 @@
   ansible.builtin.set_fact:
     _netbox_ip_addresses: "{{ _netbox_ips_raw.results | map(attribute='json') | map(attribute='results') | flatten }}"
 
-- name: Fetch VLANs for site
+- name: Fetch VLANs for all sites
   ansible.builtin.uri:
-    url: "{{ netbox_url }}/api/ipam/vlans/?site={{ netbox_site }}&limit=1000"
+    url: "{{ netbox_url }}/api/ipam/vlans/?site={{ _avd_sites | first }}&limit=1000"
     method: GET
     headers:
       Authorization: "Token {{ netbox_token }}"
@@ -62,20 +67,25 @@
   ansible.builtin.set_fact:
     _netbox_vrfs: "{{ _netbox_vrfs_raw.json.results }}"
 
-- name: Fetch prefixes for site
+- name: Fetch prefixes for all sites
   ansible.builtin.uri:
-    url: "{{ netbox_url }}/api/ipam/prefixes/?site={{ netbox_site }}&limit=1000"
+    url: "{{ netbox_url }}/api/ipam/prefixes/?site={{ item }}&limit=1000"
     method: GET
     headers:
       Authorization: "Token {{ netbox_token }}"
       Accept: application/json
     validate_certs: "{{ netbox_validate_certs }}"
     return_content: true
-  register: _netbox_prefixes_raw
+  loop: "{{ _avd_sites }}"
+  register: _netbox_prefixes_per_site_raw
 
-- name: Set prefixes fact
+- name: Set prefixes facts
   ansible.builtin.set_fact:
-    _netbox_prefixes: "{{ _netbox_prefixes_raw.json.results }}"
+    _netbox_prefixes: "{{ _netbox_prefixes_per_site_raw.results | map(attribute='json') | map(attribute='results') | flatten }}"
+    _netbox_prefixes_by_site: >-
+      {{ dict(_avd_sites | zip(
+           _netbox_prefixes_per_site_raw.results | map(attribute='json') | map(attribute='results')
+         )) }}
 
 - name: Fetch tenants
   ansible.builtin.uri:
@@ -92,22 +102,23 @@
   ansible.builtin.set_fact:
     _netbox_tenants: "{{ _netbox_tenants_raw.json.results }}"
 
-- name: Fetch cables for site devices
+- name: Fetch cables for all sites
   ansible.builtin.uri:
-    url: "{{ netbox_url }}/api/dcim/cables/?site={{ netbox_site }}&limit=1000"
+    url: "{{ netbox_url }}/api/dcim/cables/?site={{ item }}&limit=1000"
     method: GET
     headers:
       Authorization: "Token {{ netbox_token }}"
       Accept: application/json
     validate_certs: "{{ netbox_validate_certs }}"
     return_content: true
-  register: _netbox_cables_raw
+  loop: "{{ _avd_sites }}"
+  register: _netbox_cables_per_site_raw
 
 - name: Set cables fact
   ansible.builtin.set_fact:
-    _netbox_cables: "{{ _netbox_cables_raw.json.results }}"
+    _netbox_cables: "{{ _netbox_cables_per_site_raw.results | map(attribute='json') | map(attribute='results') | flatten }}"
 
-- name: Fetch all interfaces for site devices
+- name: Fetch interfaces for all devices
   ansible.builtin.uri:
     url: "{{ netbox_url }}/api/dcim/interfaces/?device_id={{ item.id }}&limit=1000"
     method: GET
@@ -128,11 +139,10 @@
 - name: Display discovered data
   ansible.builtin.debug:
     msg: >-
-      Discovered from NetBox site '{{ netbox_site }}':
+      Discovered from NetBox sites {{ _avd_sites | join(', ') }}:
       {{ _netbox_devices | length }} devices,
       {{ _netbox_ip_addresses | length }} IPs,
       {{ _netbox_vlans | length }} VLANs,
       {{ _netbox_vrfs | length }} VRFs,
       {{ _netbox_prefixes | length }} prefixes,
-      {{ _netbox_cables | length }} cables,
-      {{ _netbox_tenants | length }} tenants
+      {{ _netbox_cables | length }} cables

@@ -1,0 +1,10 @@
+---
+# IP pools, bgp_as, uplink_switches all come from NetBox now.
+# Only AVD-specific tuning knobs remain here.
+l3leaf:
+  defaults:
+    platform: cEOSLab
+    loopback_ipv4_offset: 2
+    virtual_router_mac_address: 00:1c:73:00:00:99
+    spanning_tree_priority: 4096
+    spanning_tree_mode: mstp

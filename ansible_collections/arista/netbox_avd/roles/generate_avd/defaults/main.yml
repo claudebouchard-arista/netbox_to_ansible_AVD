@@ -4,8 +4,9 @@ netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('http://localhost:18080', 
 netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') | default('0123456789abcdef0123456789abcdef01234567', true) }}"
 netbox_validate_certs: false
 
-# NetBox query filters
+# NetBox query filters - use netbox_site for single-DC, netbox_sites for multi-DC
 netbox_site: ""
+netbox_sites: []
 netbox_device_status: active
 
 # Output and defaults directories

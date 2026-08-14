@@ -1,0 +1,101 @@
+---
+# Per-site transforms — called once per site in the loop
+- name: "{{ _current_site | upper }}: Filter devices by role"
+  ansible.builtin.set_fact:
+    _site_devices: "{{ _netbox_devices_by_site[_current_site] | default([]) }}"
+
+- name: "{{ _current_site | upper }}: Separate device types"
+  ansible.builtin.set_fact:
+    _site_spines: >-
+      {{ _site_devices
+         | selectattr('role.slug', 'defined')
+         | selectattr('role.slug', 'equalto', (avd_role_mapping | dict2items | selectattr('value', 'equalto', 'spine') | map(attribute='key') | first | default('spine')))
+         | list }}
+    _site_l3leafs: >-
+      {{ _site_devices
+         | selectattr('role.slug', 'defined')
+         | selectattr('role.slug', 'equalto', (avd_role_mapping | dict2items | selectattr('value', 'equalto', 'l3leaf') | map(attribute='key') | first | default('l3-leaf')))
+         | list }}
+    _site_l2leafs: >-
+      {{ _site_devices
+         | selectattr('role.slug', 'defined')
+         | selectattr('role.slug', 'equalto', (avd_role_mapping | dict2items | selectattr('value', 'equalto', 'l2leaf') | map(attribute='key') | first | default('l2-leaf')))
+         | list }}
+
+- name: "{{ _current_site | upper }}: Extract IP pools"
+  ansible.builtin.set_fact:
+    _site_ip_pools: >-
+      {{ (_netbox_prefixes_by_site[_current_site] | default([]))
+         | arista.netbox_avd.to_avd_ip_pools }}
+
+- name: "{{ _current_site | upper }}: Build spine data"
+  ansible.builtin.set_fact:
+    _site_spine_nodes: >-
+      {{ _site_spines
+         | arista.netbox_avd.to_avd_spine_nodes(
+             _netbox_ip_addresses, avd_node_id_field,
+             avd_mgmt_interface_name) }}
+    _site_spine_names: "{{ _site_spines | arista.netbox_avd.to_avd_spine_names }}"
+    _site_spine_bgp_as: "{{ _site_spines | arista.netbox_avd.to_avd_spine_bgp_as }}"
+
+- name: "{{ _current_site | upper }}: Build leaf node groups"
+  ansible.builtin.set_fact:
+    _site_l3leaf_node_groups: >-
+      {{ _site_l3leafs
+         | arista.netbox_avd.to_avd_l3leaf_node_groups(
+             _avd_l3leaf_defaults.get('l3leaf', {}),
+             _netbox_ip_addresses, avd_node_id_field,
+             avd_node_group_field, avd_mgmt_interface_name) }}
+    _site_l2leaf_node_groups: >-
+      {{ _site_l2leafs
+         | arista.netbox_avd.to_avd_l2leaf_node_groups(
+             _avd_l2leaf_defaults.get('l2leaf', {}),
+             _netbox_ip_addresses, avd_node_id_field,
+             avd_node_group_field, avd_mgmt_interface_name) }}
+
+- name: "{{ _current_site | upper }}: Build spine NetBox defaults"
+  ansible.builtin.set_fact:
+    _site_spine_nb_defaults:
+      bgp_as: "{{ _site_spine_bgp_as | default(omit, true) }}"
+      loopback_ipv4_pool: "{{ _site_ip_pools.loopback | default(omit, true) }}"
+
+- name: "{{ _current_site | upper }}: Build L3 leaf NetBox defaults"
+  ansible.builtin.set_fact:
+    _site_l3leaf_nb_defaults:
+      uplink_switches: "{{ _site_spine_names }}"
+      loopback_ipv4_pool: "{{ _site_ip_pools.loopback | default(omit, true) }}"
+      vtep_loopback_ipv4_pool: "{{ _site_ip_pools.vtep | default(omit, true) }}"
+      uplink_ipv4_pool: "{{ _site_ip_pools.p2p_uplink | default(omit, true) }}"
+      mlag_peer_ipv4_pool: "{{ _site_ip_pools.mlag_peer | default(omit, true) }}"
+      mlag_peer_l3_ipv4_pool: "{{ _site_ip_pools.mlag_peer_l3 | default(omit, true) }}"
+
+- name: "{{ _current_site | upper }}: Assemble spine group_vars"
+  ansible.builtin.set_fact:
+    "_avd_site_spines_{{ _current_site }}":
+      type: spine
+      spine: >-
+        {{ _avd_spine_defaults.get('spine', {})
+           | arista.netbox_avd.to_avd_merge_defaults(
+               {'defaults': (_avd_spine_defaults.get('spine', {}).get('defaults', {})
+                | arista.netbox_avd.to_avd_merge_defaults(_site_spine_nb_defaults)),
+                'nodes': _site_spine_nodes}) }}
+
+- name: "{{ _current_site | upper }}: Assemble L3 leaf group_vars"
+  ansible.builtin.set_fact:
+    "_avd_site_l3leaves_{{ _current_site }}":
+      type: l3leaf
+      l3leaf: >-
+        {{ _avd_l3leaf_defaults.get('l3leaf', {})
+           | arista.netbox_avd.to_avd_merge_defaults(
+               {'defaults': (_avd_l3leaf_defaults.get('l3leaf', {}).get('defaults', {})
+                | arista.netbox_avd.to_avd_merge_defaults(_site_l3leaf_nb_defaults)),
+                'node_groups': _site_l3leaf_node_groups}) }}
+
+- name: "{{ _current_site | upper }}: Assemble L2 leaf group_vars"
+  ansible.builtin.set_fact:
+    "_avd_site_l2leaves_{{ _current_site }}":
+      type: l2leaf
+      l2leaf: >-
+        {{ _avd_l2leaf_defaults.get('l2leaf', {})
+           | arista.netbox_avd.to_avd_merge_defaults(
+               {'node_groups': _site_l2leaf_node_groups}) }}

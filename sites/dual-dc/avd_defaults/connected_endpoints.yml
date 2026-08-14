@@ -1,0 +1,6 @@
+---
+# Connected endpoints (servers, adapters) are now auto-generated from
+# NetBox cables, interface modes, and VLAN assignments.
+#
+# This file can contain overrides that get deep-merged on top.
+# Leave empty to use pure NetBox data.

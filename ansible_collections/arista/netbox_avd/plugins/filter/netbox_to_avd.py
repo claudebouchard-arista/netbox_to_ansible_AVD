@@ -176,6 +176,71 @@ def to_avd_inventory(devices, site_name, role_mapping, ip_addresses=None,
     return inventory
 
 
+def to_avd_multi_site_inventory(sites_devices, role_mapping,
+                                ip_addresses=None,
+                                mgmt_interface_name="Management0"):
+    """Build AVD inventory for multiple sites (dual-dc, etc.).
+
+    Args:
+        sites_devices: Dict of {site_slug: devices_list}.
+        role_mapping: Dict mapping NetBox role slugs to AVD types.
+        ip_addresses: All IP address dicts across sites.
+        mgmt_interface_name: Management interface name.
+
+    Returns:
+        Dict representing a multi-site inventory.yml.
+    """
+    if not sites_devices:
+        return {}
+
+    ip_addresses = ip_addresses or []
+    dc_children = {}
+    ns_children = {}
+    ce_children = {}
+
+    for site_slug, devices in sorted(sites_devices.items()):
+        dc_name = site_slug.upper().replace("-", "_")
+        grouped = _group_devices_by_role(devices, role_mapping)
+
+        spine_group = f"{dc_name}_SPINES"
+        l3leaf_group = f"{dc_name}_L3_LEAVES"
+        l2leaf_group = f"{dc_name}_L2_LEAVES"
+
+        site_children = {}
+
+        for avd_type, group_name in [("spine", spine_group),
+                                     ("l3leaf", l3leaf_group),
+                                     ("l2leaf", l2leaf_group)]:
+            if avd_type in grouped:
+                hosts = {}
+                for dev in sorted(grouped[avd_type],
+                                  key=lambda d: d.get("name", "")):
+                    name = dev.get("name")
+                    entry = {}
+                    mgmt_ip = _get_mgmt_ip(dev, ip_addresses,
+                                           mgmt_interface_name)
+                    if mgmt_ip:
+                        entry["ansible_host"] = mgmt_ip.split("/")[0]
+                    hosts[name] = entry or None
+                site_children[group_name] = {"hosts": hosts}
+
+                if avd_type in ("l3leaf", "l2leaf"):
+                    ns_children[group_name] = None
+                    ce_children[group_name] = None
+
+        dc_children[dc_name] = {"children": site_children}
+
+    return {
+        "all": {
+            "children": {
+                "FABRIC": {"children": dc_children},
+                "NETWORK_SERVICES": {"children": ns_children},
+                "CONNECTED_ENDPOINTS": {"children": ce_children},
+            }
+        }
+    }
+
+
 def to_avd_spine_nodes(devices, ip_addresses=None, node_id_field="avd_node_id",
                        mgmt_interface_name="Management0"):
     """Convert NetBox spine devices to AVD spine node list.
@@ -642,6 +707,7 @@ class FilterModule:
     def filters(self):
         return {
             "to_avd_inventory": to_avd_inventory,
+            "to_avd_multi_site_inventory": to_avd_multi_site_inventory,
             "to_avd_spine_nodes": to_avd_spine_nodes,
             "to_avd_spine_names": to_avd_spine_names,
             "to_avd_l3leaf_node_groups": to_avd_l3leaf_node_groups,
