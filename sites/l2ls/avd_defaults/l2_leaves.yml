@@ -1,0 +1,15 @@
+---
+# L2LS leaf switches
+l2leaf:
+  defaults:
+    platform: cEOSLab
+    uplink_switches: [l2ls-spine1, l2ls-spine2]
+    uplink_interfaces: [Ethernet1, Ethernet2]
+    mlag_interfaces: [Ethernet47, Ethernet48]
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 16384
+  node_groups:
+    - group: RACK1
+      mlag: true
+    - group: RACK2
+      mlag: true

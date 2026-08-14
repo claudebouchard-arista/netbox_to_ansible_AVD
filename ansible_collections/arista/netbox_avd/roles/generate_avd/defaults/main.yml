@@ -28,3 +28,11 @@ avd_mgmt_interface_name: Management0
 
 # Generate AVD playbooks alongside inventory
 avd_generate_playbooks: true
+
+# Group naming config (override for L2LS or other topologies)
+# Keys are AVD types, values have: suffix, in_network_services, in_connected_endpoints
+avd_group_config: {}
+
+# Override network services / connected endpoints group names
+avd_network_services_name: NETWORK_SERVICES
+avd_connected_endpoints_name: CONNECTED_ENDPOINTS

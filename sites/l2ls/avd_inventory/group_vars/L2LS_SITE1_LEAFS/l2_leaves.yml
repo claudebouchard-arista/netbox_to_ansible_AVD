@@ -1,0 +1,36 @@
+---
+l2leaf:
+  defaults:
+    mlag_interfaces:
+    - Ethernet47
+    - Ethernet48
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    platform: cEOSLab
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 16384
+    uplink_interfaces:
+    - Ethernet1
+    - Ethernet2
+    uplink_switches:
+    - l2ls-spine1
+    - l2ls-spine2
+  node_groups:
+  - group: RACK1
+    mlag: true
+    nodes:
+    - id: 1
+      mgmt_ip: 172.16.100.105/24
+      name: l2ls-leaf1
+    - id: 2
+      mgmt_ip: 172.16.100.106/24
+      name: l2ls-leaf2
+  - group: RACK2
+    mlag: true
+    nodes:
+    - id: 3
+      mgmt_ip: 172.16.100.107/24
+      name: l2ls-leaf3
+    - id: 4
+      mgmt_ip: 172.16.100.108/24
+      name: l2ls-leaf4
+type: l2leaf

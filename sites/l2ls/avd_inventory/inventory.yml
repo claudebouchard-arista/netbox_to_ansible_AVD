@@ -1,0 +1,31 @@
+---
+all:
+  children:
+    FABRIC:
+      children:
+        L2LS_SITE1:
+          children:
+            L2LS_SITE1_LEAFS:
+              hosts:
+                l2ls-leaf1:
+                  ansible_host: 172.16.100.105
+                l2ls-leaf2:
+                  ansible_host: 172.16.100.106
+                l2ls-leaf3:
+                  ansible_host: 172.16.100.107
+                l2ls-leaf4:
+                  ansible_host: 172.16.100.108
+            L2LS_SITE1_SPINES:
+              hosts:
+                l2ls-spine1:
+                  ansible_host: 172.16.100.101
+                l2ls-spine2:
+                  ansible_host: 172.16.100.102
+    L2LS_SITE1_ENDPOINTS:
+      children:
+        L2LS_SITE1_LEAFS: null
+        L2LS_SITE1_SPINES: null
+    L2LS_SITE1_NETWORK_SERVICES:
+      children:
+        L2LS_SITE1_LEAFS: null
+        L2LS_SITE1_SPINES: null

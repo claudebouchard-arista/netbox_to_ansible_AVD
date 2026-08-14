@@ -142,6 +142,76 @@ SITES = {
             {"prefix": "10.255.129.96/27", "role": "mlag_peer_l3"},
         ],
     },
+    "l2ls-site1": {
+        "name": "L2LS-SITE1",
+        "devices": [
+            {"name": "l2ls-spine1", "role": "l2-spine", "dtype": "cEOSLab-spine",
+             "node_id": 1, "node_group": "SPINES", "bgp_as": None,
+             "mgmt_ip": "172.16.100.101/24"},
+            {"name": "l2ls-spine2", "role": "l2-spine", "dtype": "cEOSLab-spine",
+             "node_id": 2, "node_group": "SPINES", "bgp_as": None,
+             "mgmt_ip": "172.16.100.102/24"},
+            {"name": "l2ls-leaf1", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 1, "node_group": "RACK1", "bgp_as": None,
+             "mgmt_ip": "172.16.100.105/24"},
+            {"name": "l2ls-leaf2", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 2, "node_group": "RACK1", "bgp_as": None,
+             "mgmt_ip": "172.16.100.106/24"},
+            {"name": "l2ls-leaf3", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 3, "node_group": "RACK2", "bgp_as": None,
+             "mgmt_ip": "172.16.100.107/24"},
+            {"name": "l2ls-leaf4", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 4, "node_group": "RACK2", "bgp_as": None,
+             "mgmt_ip": "172.16.100.108/24"},
+        ],
+        "servers": [
+            {"name": "l2ls-hostA", "adapters": [
+                {"endpoint_ports": ["Eth1"],
+                 "switch_ports": ["Ethernet3"],
+                 "switches": ["l2ls-leaf1"],
+                 "vlans": [10], "native_vlan": None,
+                 "mode": "access", "port_channel": False},
+            ]},
+            {"name": "l2ls-hostB", "adapters": [
+                {"endpoint_ports": ["Eth1"],
+                 "switch_ports": ["Ethernet3"],
+                 "switches": ["l2ls-leaf2"],
+                 "vlans": [20], "native_vlan": None,
+                 "mode": "access", "port_channel": False},
+            ]},
+            {"name": "l2ls-hostC", "adapters": [
+                {"endpoint_ports": ["Eth1"],
+                 "switch_ports": ["Ethernet3"],
+                 "switches": ["l2ls-leaf3"],
+                 "vlans": [10], "native_vlan": None,
+                 "mode": "access", "port_channel": False},
+            ]},
+            {"name": "l2ls-host2", "adapters": [
+                {"endpoint_ports": ["Eth1"],
+                 "switch_ports": ["Ethernet3"],
+                 "switches": ["l2ls-leaf4"],
+                 "vlans": [30], "native_vlan": None,
+                 "mode": "access", "port_channel": False},
+            ]},
+            {"name": "l2ls-firewall", "adapters": [
+                {"endpoint_ports": ["Eth1", "Eth2"],
+                 "switch_ports": ["Ethernet5", "Ethernet5"],
+                 "switches": ["l2ls-spine1", "l2ls-spine2"],
+                 "vlans": [10, 20, 30], "native_vlan": None,
+                 "mode": "tagged", "port_channel": True},
+            ]},
+        ],
+        "pools": [
+            {"prefix": "192.168.0.0/24", "role": "mlag_peer"},
+        ],
+        "vlans": [
+            {"vid": 10, "name": "BLUE-NET", "vrf": None, "prefix": None},
+            {"vid": 20, "name": "GREEN-NET", "vrf": None, "prefix": None},
+            {"vid": 30, "name": "ORANGE-NET", "vrf": None, "prefix": None},
+        ],
+        "tenant": {"name": "MY_FABRIC", "slug": "my-fabric",
+                    "mac_vrf_vni_base": None},
+    },
 }
 
 VRFS = [
@@ -253,7 +323,9 @@ def seed(site_slugs=None):
     for rd in [{"name": "Spine", "slug": "spine", "color": "aa1409"},
                {"name": "L3 Leaf", "slug": "l3-leaf", "color": "2196f3"},
                {"name": "L2 Leaf", "slug": "l2-leaf", "color": "4caf50"},
-               {"name": "Server", "slug": "server", "color": "9e9e9e"}]:
+               {"name": "L2 Spine", "slug": "l2-spine", "color": "ff9800"},
+               {"name": "Server", "slug": "server", "color": "9e9e9e"},
+               {"name": "Firewall", "slug": "firewall", "color": "f44336"}]:
         roles[rd["slug"]] = get_or_create(nb.dcim.device_roles,
                                            {"slug": rd["slug"]}, rd)
     dtypes = {}
@@ -300,24 +372,35 @@ def seed(site_slugs=None):
                               {"name": site_data["name"], "region": region.id,
                                "status": "active"})
 
+        # --- Per-site tenant (if site has its own) ---
+        site_tenant = tenant
+        if "tenant" in site_data:
+            td = site_data["tenant"]
+            site_tenant = get_or_create(
+                nb.tenancy.tenants, {"slug": td["slug"]},
+                {"name": td["name"],
+                 "custom_fields": {"avd_mac_vrf_vni_base": td.get("mac_vrf_vni_base")}})
+            print(f"  Tenant: {td['name']}")
+
         # --- VLANs + prefixes (per-site) ---
         print("  VLANs and prefixes...")
+        site_vlans = site_data.get("vlans", VLANS)
         vlan_objs = {}
-        for vd in VLANS:
+        for vd in site_vlans:
             vlan = get_or_create(
                 nb.ipam.vlans, {"vid": vd["vid"], "site_id": site.id},
                 {"vid": vd["vid"], "name": vd["name"], "site": site.id,
-                 "tenant": tenant.id, "status": "active"})
+                 "tenant": site_tenant.id, "status": "active"})
             vlan_objs[vd["vid"]] = vlan
-            if vd["prefix"]:
-                vrf_id = vrf_objs[vd["vrf"]].id if vd["vrf"] else None
+            if vd.get("prefix"):
+                vrf_id = vrf_objs[vd["vrf"]].id if vd.get("vrf") else None
                 existing = list(nb.ipam.prefixes.filter(
                     prefix=vd["prefix"], vrf_id=vrf_id))
                 if not existing:
                     nb.ipam.prefixes.create(
                         {"prefix": vd["prefix"], "site": site.id,
                          "vlan": vlan.id, "vrf": vrf_id,
-                         "tenant": tenant.id, "status": "active"})
+                         "tenant": site_tenant.id, "status": "active"})
 
         # --- IP pools (per-site) ---
         print("  IP pools...")
@@ -438,7 +521,7 @@ def seed(site_slugs=None):
             total_srvs += 1
 
     # --- DCI cables (dual-dc only) ---
-    if len(site_slugs) > 1:
+    if set(site_slugs) >= {"dc1", "dc2"}:
         print("\nCreating DCI cables...")
         for dci in DCI_CABLES:
             create_cable(nb, dev_objs,
@@ -449,18 +532,21 @@ def seed(site_slugs=None):
 
     print("\nSeeding complete!")
     print(f"  Sites: {', '.join(site_slugs)}")
-    print(f"  Network devices: {total_devs}")
-    print(f"  Servers: {total_srvs}")
-    print(f"  VLANs: {len(VLANS)}, VRFs: {len(VRFS)}, Tenant: TENANT1")
+    print(f"  Network devices: {total_devs}, Servers: {total_srvs}")
 
 
 if __name__ == "__main__":
-    dual = "--dual-dc" in sys.argv
+    args = set(sys.argv[1:])
+    if "--dual-dc" in args:
+        sites = ["dc1", "dc2"]
+    elif "--l2ls" in args:
+        sites = ["l2ls-site1"]
+    elif "--all" in args:
+        sites = ["dc1", "dc2", "l2ls-site1"]
+    else:
+        sites = ["dc1"]
     try:
-        if dual:
-            seed(["dc1", "dc2"])
-        else:
-            seed(["dc1"])
+        seed(sites)
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         import traceback

@@ -1,0 +1,4 @@
+---
+management_eapi:
+  enabled: true
+mgmt_gateway: 172.16.100.1
