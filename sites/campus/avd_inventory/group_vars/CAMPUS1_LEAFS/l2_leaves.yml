@@ -1,0 +1,87 @@
+---
+l2leaf:
+  defaults:
+    inband_mgmt_subnet: 10.10.10.0/24
+    inband_mgmt_vlan: 10
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    platform: cEOSLab
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 16384
+  node_groups:
+  - filter:
+      tags:
+      - '110'
+      - '120'
+      - '130'
+    group: IDF1
+    mlag: true
+    mlag_interfaces:
+    - Ethernet53
+    - Ethernet54
+    nodes:
+    - id: 3
+      mgmt_ip: 172.16.100.203/24
+      name: campus-leaf1a
+      uplink_switch_interfaces:
+      - Ethernet1
+      uplink_switches:
+      - campus-spine1
+    - id: 4
+      mgmt_ip: 172.16.100.204/24
+      name: campus-leaf1b
+      uplink_switch_interfaces:
+      - Ethernet1
+      uplink_switches:
+      - campus-spine2
+    uplink_interfaces:
+    - Ethernet51
+  - filter:
+      tags:
+      - '210'
+      - '220'
+      - '230'
+    group: IDF2
+    mlag: false
+    nodes:
+    - id: 5
+      mgmt_ip: 172.16.100.205/24
+      name: campus-leaf2a
+      uplink_interfaces:
+      - Ethernet1
+      - Ethernet2
+      uplink_switch_interfaces:
+      - Ethernet49/1
+      - Ethernet49/1
+      uplink_switches:
+      - campus-spine1
+      - campus-spine2
+  - filter:
+      tags:
+      - '310'
+      - '320'
+      - '330'
+    group: IDF3_AGG
+    mlag: true
+    mlag_interfaces:
+    - Ethernet98/3
+    - Ethernet98/4
+    nodes:
+    - id: 6
+      mgmt_ip: 172.16.100.206/24
+      name: campus-leaf3a
+      uplink_switch_interfaces:
+      - Ethernet50/1
+      - Ethernet50/1
+    - id: 7
+      mgmt_ip: 172.16.100.207/24
+      name: campus-leaf3b
+      uplink_switch_interfaces:
+      - Ethernet51/1
+      - Ethernet51/1
+    uplink_interfaces:
+    - Ethernet97/1
+    - Ethernet97/2
+    uplink_switches:
+    - campus-spine1
+    - campus-spine2
+type: l2leaf

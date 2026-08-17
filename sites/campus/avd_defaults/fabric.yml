@@ -1,0 +1,27 @@
+---
+fabric_name: CAMPUS1
+
+ansible_connection: ansible.netcommon.httpapi
+ansible_network_os: arista.eos.eos
+ansible_user: arista
+ansible_password: arista
+ansible_become: true
+ansible_become_method: enable
+ansible_httpapi_use_ssl: true
+ansible_httpapi_validate_certs: false
+
+management_eapi:
+  enabled: true
+
+underlay_routing_protocol: ospf
+
+core_interfaces:
+  p2p_links:
+    - ip: [10.0.0.3/31, 10.0.0.2/31]
+      nodes: [campus-spine1, WAN]
+      interfaces: [Ethernet52/1, Ethernet1/1]
+      include_in_underlay_protocol: true
+    - ip: [10.0.0.5/31, 10.0.0.4/31]
+      nodes: [campus-spine2, WAN]
+      interfaces: [Ethernet52/1, Ethernet1/1]
+      include_in_underlay_protocol: true

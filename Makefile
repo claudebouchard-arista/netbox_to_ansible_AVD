@@ -44,7 +44,11 @@ seed-l2ls: ## Seed NetBox with L2LS site test data
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --l2ls
 
-seed-all: ## Seed all topologies (DC1, DC2, L2LS)
+seed-campus: ## Seed NetBox with campus site test data
+	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
+	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --campus
+
+seed-all: ## Seed all topologies (DC1, DC2, L2LS, campus)
 	@PORT=$$(docker port docker-netbox-1 8080 2>/dev/null | head -1 | cut -d: -f2); \
 	NETBOX_URL="http://localhost:$$PORT" python tests/fixtures/seed_netbox.py --all
 

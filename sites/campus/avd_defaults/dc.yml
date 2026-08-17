@@ -1,0 +1,27 @@
+---
+aaa_settings:
+  authorization:
+    exec:
+      default: local
+  local_users:
+    - name: admin
+      privilege: 15
+      role: network-admin
+      no_password: true
+    - name: arista
+      privilege: 15
+      role: network-admin
+      sha512_password: "$6$Enl0WfE32FthwyiJ$yTyGaEJ2uPKLU.F7314YtB7J1jrzrMi7ogXIRTEHQfLdLgKWWmr1UvNlZLN6AyuxET7G5aH3AI9OYRzxVTkB1."
+
+mgmt_gateway: 172.16.100.1
+
+dns_settings:
+  servers:
+    - ip_address: 8.8.4.4
+    - ip_address: 8.8.8.8
+
+ntp_settings:
+  server_vrf: use_mgmt_interface_vrf
+  servers:
+    - name: time.google.com
+    - name: pool.ntp.org

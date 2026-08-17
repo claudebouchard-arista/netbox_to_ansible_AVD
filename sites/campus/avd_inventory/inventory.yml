@@ -1,0 +1,33 @@
+---
+all:
+  children:
+    CAMPUS1_NETWORK_PORTS:
+      children:
+        CAMPUS1_LEAFS: null
+        CAMPUS1_SPINES: null
+    CAMPUS1_NETWORK_SERVICES:
+      children:
+        CAMPUS1_LEAFS: null
+        CAMPUS1_SPINES: null
+    FABRIC:
+      children:
+        CAMPUS1:
+          children:
+            CAMPUS1_LEAFS:
+              hosts:
+                campus-leaf1a:
+                  ansible_host: 172.16.100.203
+                campus-leaf1b:
+                  ansible_host: 172.16.100.204
+                campus-leaf2a:
+                  ansible_host: 172.16.100.205
+                campus-leaf3a:
+                  ansible_host: 172.16.100.206
+                campus-leaf3b:
+                  ansible_host: 172.16.100.207
+            CAMPUS1_SPINES:
+              hosts:
+                campus-spine1:
+                  ansible_host: 172.16.100.201
+                campus-spine2:
+                  ansible_host: 172.16.100.202

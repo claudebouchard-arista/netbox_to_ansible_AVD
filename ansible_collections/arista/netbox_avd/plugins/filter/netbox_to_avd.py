@@ -89,6 +89,8 @@ DEFAULT_GROUP_CONFIG = {
                "in_connected_endpoints": True},
     "l2spine": {"suffix": "SPINES", "in_network_services": True,
                 "in_connected_endpoints": True},
+    "l3spine": {"suffix": "SPINES", "in_network_services": True,
+                "in_connected_endpoints": True},
 }
 
 L2LS_GROUP_CONFIG = {
@@ -294,12 +296,25 @@ def to_avd_l3leaf_node_groups(devices, defaults=None, ip_addresses=None,
         seen_groups.add(group_name)
         entry = copy.deepcopy(ng)
         if group_name in groups_from_netbox:
-            entry["nodes"] = _build_node_list(
+            netbox_nodes = _build_node_list(
                 groups_from_netbox[group_name],
                 ip_addresses,
                 node_id_field,
                 mgmt_interface_name,
             )
+            defaults_nodes = {n.get("name"): n
+                              for n in entry.get("nodes", [])
+                              if n.get("name")}
+            merged_nodes = []
+            for nb_node in netbox_nodes:
+                name = nb_node.get("name")
+                if name in defaults_nodes:
+                    merged = copy.deepcopy(defaults_nodes[name])
+                    merged.update(nb_node)
+                    merged_nodes.append(merged)
+                else:
+                    merged_nodes.append(nb_node)
+            entry["nodes"] = merged_nodes
         result.append(entry)
 
     for group_name in sorted(groups_from_netbox.keys()):
