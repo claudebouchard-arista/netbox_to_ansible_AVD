@@ -1,0 +1,22 @@
+---
+tenants:
+- l2vlans:
+  - id: 110
+    name: IDF1-Data
+  - id: 120
+    name: IDF1-Voice
+  - id: 130
+    name: IDF1-Guest
+  - id: 210
+    name: IDF2-Data
+  - id: 220
+    name: IDF2-Voice
+  - id: 230
+    name: IDF2-Guest
+  - id: 310
+    name: IDF3-Data
+  - id: 320
+    name: IDF3-Voice
+  - id: 330
+    name: IDF3-Guest
+  name: MY_FABRIC

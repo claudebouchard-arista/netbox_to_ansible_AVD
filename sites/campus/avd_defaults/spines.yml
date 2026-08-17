@@ -1,0 +1,11 @@
+---
+# Campus spines are l3spine (OSPF routing, SVIs, MLAG pair)
+l3spine:
+  defaults:
+    platform: cEOSLab
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 4096
+    virtual_router_mac_address: 00:1c:73:00:dc:01
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    mlag_peer_l3_ipv4_pool: 10.1.1.0/24
+    mlag_interfaces: [Ethernet55/1, Ethernet56/1]

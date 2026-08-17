@@ -142,6 +142,51 @@ SITES = {
             {"prefix": "10.255.129.96/27", "role": "mlag_peer_l3"},
         ],
     },
+    "campus1": {
+        "name": "CAMPUS1",
+        "devices": [
+            {"name": "campus-spine1", "role": "l3-spine", "dtype": "cEOSLab-spine",
+             "node_id": 1, "node_group": "SPINES", "bgp_as": None,
+             "mgmt_ip": "172.16.100.201/24"},
+            {"name": "campus-spine2", "role": "l3-spine", "dtype": "cEOSLab-spine",
+             "node_id": 2, "node_group": "SPINES", "bgp_as": None,
+             "mgmt_ip": "172.16.100.202/24"},
+            {"name": "campus-leaf1a", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 3, "node_group": "IDF1", "bgp_as": None,
+             "mgmt_ip": "172.16.100.203/24"},
+            {"name": "campus-leaf1b", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 4, "node_group": "IDF1", "bgp_as": None,
+             "mgmt_ip": "172.16.100.204/24"},
+            {"name": "campus-leaf2a", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 5, "node_group": "IDF2", "bgp_as": None,
+             "mgmt_ip": "172.16.100.205/24"},
+            {"name": "campus-leaf3a", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 6, "node_group": "IDF3_AGG", "bgp_as": None,
+             "mgmt_ip": "172.16.100.206/24"},
+            {"name": "campus-leaf3b", "role": "l2-leaf", "dtype": "cEOSLab-l2leaf",
+             "node_id": 7, "node_group": "IDF3_AGG", "bgp_as": None,
+             "mgmt_ip": "172.16.100.207/24"},
+        ],
+        "servers": [],
+        "pools": [
+            {"prefix": "172.16.1.0/24", "role": "loopback"},
+            {"prefix": "192.168.0.0/24", "role": "mlag_peer"},
+            {"prefix": "10.1.1.0/24", "role": "mlag_peer_l3"},
+        ],
+        "vlans": [
+            {"vid": 110, "name": "IDF1-Data", "vrf": None, "prefix": None},
+            {"vid": 120, "name": "IDF1-Voice", "vrf": None, "prefix": None},
+            {"vid": 130, "name": "IDF1-Guest", "vrf": None, "prefix": None},
+            {"vid": 210, "name": "IDF2-Data", "vrf": None, "prefix": None},
+            {"vid": 220, "name": "IDF2-Voice", "vrf": None, "prefix": None},
+            {"vid": 230, "name": "IDF2-Guest", "vrf": None, "prefix": None},
+            {"vid": 310, "name": "IDF3-Data", "vrf": None, "prefix": None},
+            {"vid": 320, "name": "IDF3-Voice", "vrf": None, "prefix": None},
+            {"vid": 330, "name": "IDF3-Guest", "vrf": None, "prefix": None},
+        ],
+        "tenant": {"name": "MY_FABRIC", "slug": "my-fabric",
+                    "mac_vrf_vni_base": None},
+    },
     "l2ls-site1": {
         "name": "L2LS-SITE1",
         "devices": [
@@ -324,6 +369,7 @@ def seed(site_slugs=None):
                {"name": "L3 Leaf", "slug": "l3-leaf", "color": "2196f3"},
                {"name": "L2 Leaf", "slug": "l2-leaf", "color": "4caf50"},
                {"name": "L2 Spine", "slug": "l2-spine", "color": "ff9800"},
+               {"name": "L3 Spine", "slug": "l3-spine", "color": "e91e63"},
                {"name": "Server", "slug": "server", "color": "9e9e9e"},
                {"name": "Firewall", "slug": "firewall", "color": "f44336"}]:
         roles[rd["slug"]] = get_or_create(nb.dcim.device_roles,
@@ -405,13 +451,20 @@ def seed(site_slugs=None):
         # --- IP pools (per-site) ---
         print("  IP pools...")
         for pool in site_data["pools"]:
-            pfx = get_or_create(
-                nb.ipam.prefixes,
-                {"prefix": pool["prefix"], "site_id": site.id,
-                 "cf_avd_pool_role": pool["role"]},
-                {"prefix": pool["prefix"], "site": site.id,
-                 "status": "active",
-                 "custom_fields": {"avd_pool_role": pool["role"]}})
+            existing = list(nb.ipam.prefixes.filter(
+                prefix=pool["prefix"], site_id=site.id))
+            if existing:
+                pfx = existing[0]
+            else:
+                try:
+                    pfx = nb.ipam.prefixes.create(
+                        {"prefix": pool["prefix"], "site": site.id,
+                         "status": "active",
+                         "custom_fields": {"avd_pool_role": pool["role"]}})
+                except Exception:
+                    existing_any = list(nb.ipam.prefixes.filter(
+                        prefix=pool["prefix"]))
+                    pfx = existing_any[0] if existing_any else None
             if (pfx.custom_fields or {}).get("avd_pool_role") != pool["role"]:
                 pfx.custom_fields = {"avd_pool_role": pool["role"]}
                 pfx.save()
@@ -541,8 +594,10 @@ if __name__ == "__main__":
         sites = ["dc1", "dc2"]
     elif "--l2ls" in args:
         sites = ["l2ls-site1"]
+    elif "--campus" in args:
+        sites = ["campus1"]
     elif "--all" in args:
-        sites = ["dc1", "dc2", "l2ls-site1"]
+        sites = ["dc1", "dc2", "l2ls-site1", "campus1"]
     else:
         sites = ["dc1"]
     try:

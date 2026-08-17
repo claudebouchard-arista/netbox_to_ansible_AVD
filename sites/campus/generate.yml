@@ -1,0 +1,27 @@
+---
+- name: Generate AVD Inventory from NetBox for Campus Fabric
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    netbox_url: "{{ lookup('env', 'NETBOX_URL') }}"
+    netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') | default('0123456789abcdef0123456789abcdef01234567', true) }}"
+    netbox_site: campus1
+    avd_defaults_dir: "{{ playbook_dir }}/avd_defaults"
+    avd_output_dir: "{{ playbook_dir }}/avd_inventory"
+    avd_role_mapping:
+      l3-spine: l3spine
+      l2-leaf: l2leaf
+    avd_group_config:
+      l3spine:
+        suffix: SPINES
+        in_network_services: true
+        in_connected_endpoints: true
+      l2leaf:
+        suffix: LEAFS
+        in_network_services: true
+        in_connected_endpoints: true
+    avd_network_services_name: "{{ netbox_site | upper }}_NETWORK_SERVICES"
+    avd_connected_endpoints_name: "{{ netbox_site | upper }}_NETWORK_PORTS"
+  roles:
+    - arista.netbox_avd.generate_avd

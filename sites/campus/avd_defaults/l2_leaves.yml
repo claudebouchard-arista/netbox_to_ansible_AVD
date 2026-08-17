@@ -1,0 +1,45 @@
+---
+# Campus leaf switches (IDF access/aggregation)
+l2leaf:
+  defaults:
+    platform: cEOSLab
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 16384
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    inband_mgmt_subnet: 10.10.10.0/24
+    inband_mgmt_vlan: 10
+  node_groups:
+    - group: IDF1
+      mlag: true
+      uplink_interfaces: [Ethernet51]
+      mlag_interfaces: [Ethernet53, Ethernet54]
+      filter:
+        tags: ["110", "120", "130"]
+      nodes:
+        - name: campus-leaf1a
+          uplink_switches: [campus-spine1]
+          uplink_switch_interfaces: [Ethernet1]
+        - name: campus-leaf1b
+          uplink_switches: [campus-spine2]
+          uplink_switch_interfaces: [Ethernet1]
+    - group: IDF2
+      mlag: false
+      filter:
+        tags: ["210", "220", "230"]
+      nodes:
+        - name: campus-leaf2a
+          uplink_interfaces: [Ethernet1, Ethernet2]
+          uplink_switches: [campus-spine1, campus-spine2]
+          uplink_switch_interfaces: [Ethernet49/1, Ethernet49/1]
+    - group: IDF3_AGG
+      mlag: true
+      mlag_interfaces: [Ethernet98/3, Ethernet98/4]
+      uplink_switches: [campus-spine1, campus-spine2]
+      uplink_interfaces: [Ethernet97/1, Ethernet97/2]
+      filter:
+        tags: ["310", "320", "330"]
+      nodes:
+        - name: campus-leaf3a
+          uplink_switch_interfaces: [Ethernet50/1, Ethernet50/1]
+        - name: campus-leaf3b
+          uplink_switch_interfaces: [Ethernet51/1, Ethernet51/1]
